@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>FNAF World Refreshed</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#0a0614;
+  display:flex;justify-content:center;align-items:center;
+  height:100vh;overflow:hidden;
+  font-family:'Press Start 2P',monospace;
+}
+#wrap{
+  position:relative;width:800px;height:600px;
+  border:3px solid #7744cc;
+  box-shadow:0 0 40px #7744cc88,inset 0 0 20px #00000066;
+  overflow:hidden;
+}
+canvas{display:block;image-rendering:pixelated;}
+/* HUD */
+#hud{
+  position:absolute;bottom:0;width:100%;height:56px;
+  background:linear-gradient(to bottom,#0d0820,#060410);
+  border-top:2px solid #5533aa;
+  display:flex;align-items:center;gap:6px;padding:0 8px;
+}
+.hstat{color:#aa88ff;font-size:7px;white-space:nowrap;line-height:1.6}
+.hstat b{color:#ffdd55}
+.btn{
+  background:#1a0d33;border:2px solid #7744cc;color:#cc99ff;
+  padding:5px 8px;cursor:pointer;font-family:inherit;font-size:6px;
+  transition:all .1s;white-space:nowrap;
+}
+.btn:hover{background:#3311aa;color:#fff;border-color:#aa77ff}
+.btn:active{transform:scale(.95)}
+/* Battle UI overlay */
+#battleBottom{
+  position:absolute;bottom:56px;left:0;width:100%;height:190px;
+  background:linear-gradient(to bottom,#090618,#060410);
+  border-top:2px solid #5533aa;display:none;
+}
+#cmdPanel{
+  position:absolute;left:0;top:0;width:240px;height:100%;
+  border-right:1px solid #3322aa;padding:8px;
+  display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start;
+}
+#cmdTitle{
+  grid-column:1/3;color:#ffdd55;font-size:7px;
+  margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid #3322aa;
+}
+#battleMsg{
+  position:absolute;left:240px;top:0;right:180px;height:100%;
+  padding:14px 12px;color:#ccbbff;font-size:8px;
+  line-height:1.8;display:flex;align-items:center;
+}
+#partyPanel{
+  position:absolute;right:0;top:0;width:180px;height:100%;
+  border-left:1px solid #3322aa;padding:8px;overflow-y:auto;
+}
+.phrow{display:flex;align-items:center;gap:5px;margin-bottom:7px;font-size:6px;color:#9988cc}
+.hbg{flex:1;height:7px;background:#1a0d33;border:1px solid #3322aa}
+.hfill{height:100%;transition:width .3s;background:linear-gradient(to right,#44ff44,#88ff44)}
+.hfill.low{background:linear-gradient(to right,#ff3333,#ff8844)}
+.hfill.crit{background:linear-gradient(to right,#880000,#ff2200)}
+/* Shop overlay */
+#shopUI{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);
+  width:460px;background:#0a0420;
+  border:3px solid #ff44ff;box-shadow:0 0 30px #ff44ff66;
+  padding:18px;display:none;z-index:20;color:white;max-height:460px;overflow-y:auto;
+}
+#shopUI h3{color:#ff88ff;margin-bottom:14px;text-align:center;font-size:11px;letter-spacing:2px}
+.sitem{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px;border:1px solid #331133;margin-bottom:6px;font-size:7px;
+}
+.sitem-name{color:#ff88ff;margin-bottom:3px}
+.sitem-desc{color:#887799;font-size:6px}
+/* Chip UI */
+#chipUI{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);
+  width:420px;background:#020d02;border:3px solid #44ff44;
+  box-shadow:0 0 30px #44ff4466;padding:18px;display:none;z-index:20;color:white;
+}
+#chipUI h3{color:#44ff44;margin-bottom:14px;text-align:center;font-size:11px;letter-spacing:2px}
+.citem{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px;border:1px solid #1a3a1a;margin-bottom:5px;font-size:7px;
+}
+/* Notification */
+#notif{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:#0a0420;border:2px solid #ffdd55;color:#ffdd55;
+  padding:7px 14px;font-size:7px;display:none;z-index:30;
+  white-space:nowrap;box-shadow:0 0 20px #ffdd5566;
+}
+/* Damage floats */
+.dfloat{
+  position:absolute;font-weight:bold;font-size:14px;
+  pointer-events:none;z-index:25;
+  font-family:'Press Start 2P',monospace;
+  animation:floatUp .9s ease-out forwards;
+  text-shadow:2px 2px 0 #000;
+}
+@keyframes floatUp{
+  0%{opacity:1;transform:translateY(0) scale(1)}
+  50%{opacity:1;transform:translateY(-28px) scale(1.2)}
+  100%{opacity:0;transform:translateY(-60px) scale(.9)}
+}
+/* Title screen */
+#titleScreen{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  background:#0a0614;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:50;
+}
+#titleScreen h1{
+  color:#cc77ff;font-size:18px;text-align:center;
+  text-shadow:0 0 20px #cc77ff,0 0 40px #8844cc;
+  letter-spacing:2px;margin-bottom:8px;
+}
+#titleScreen p{color:#7755aa;font-size:7px;margin-bottom:40px;letter-spacing:1px}
+#startBtn{
+  background:#1a0d33;border:3px solid #cc77ff;color:#cc77ff;
+  padding:12px 24px;cursor:pointer;font-family:inherit;font-size:9px;
+  animation:pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px #cc77ff44}50%{box-shadow:0 0 25px #cc77ffaa}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="canvas" width="800" height="544"></canvas>
+
+  <!-- Battle bottom panel -->
+  <div id="battleBottom">
+    <div id="cmdPanel"><div id="cmdTitle">ACTION</div></div>
+    <div id="battleMsg">Choose an action...</div>
+    <div id="partyPanel"></div>
+  </div>
+
+  <!-- Shop -->
+  <div id="shopUI">
+    <h3>★ MENDO'S BYTE SHOP ★</h3>
+    <div id="shopItems"></div>
+    <button class="btn" onclick="closeShop()" style="width:100%;margin-top:8px">▶ EXIT SHOP</button>
+  </div>
+
+  <!-- Chip UI -->
+  <div id="chipUI">
+    <h3>⚙ CHIP EQUIP</h3>
+    <div id="chipList"></div>
+    <button class="btn" onclick="closeChips()" style="width:100%;margin-top:8px">▶ CLOSE</button>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hstat">💰<b id="tkD">0</b></div>
+    <div class="hstat">XP <b id="xpD">0</b>/<b id="xpND">100</b></div>
+    <div class="hstat">LV<b id="lvD">1</b></div>
+    <div class="hstat">Bytes:<b id="byD">0</b></div>
+    <div style="flex:1"></div>
+    <button class="btn" onclick="switchParty()">SWITCH</button>
+    <button class="btn" onclick="openChips()">CHIPS</button>
+    <button class="btn" onclick="saveGame()">SAVE</button>
+    <button class="btn" onclick="loadGame()">LOAD</button>
+  </div>
+
+  <div id="notif"></div>
+
+  <!-- Title -->
+  <div id="titleScreen">
+    <h1>FNAF WORLD</h1>
+    <p>★ REFRESHED ★ FANGAME</p>
+    <p style="color:#554477;font-size:6px;margin-bottom:30px">WASD/ARROWS TO MOVE  •  E TO INTERACT</p>
+    <button id="startBtn" class="btn" onclick="startGame()">▶ START GAME</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CANVAS & CONTEXT
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById("canvas");
+const ctx    = canvas.getContext("2d");
+
+// ═══════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════
+const TILE  = 48;
+const MAP_W = 30;
+const MAP_H = 30;
+const VIEW_W = 800;
+const VIEW_H = 544;
+
+// ═══════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════
+let gameState = "title"; // title|world|battle|shop|chips
+
+// ═══════════════════════════════════════════════
+//  ECONOMY
+// ═══════════════════════════════════════════════
+let tokens = 0, xp = 0, level = 1, xpNext = 100;
+
+// ═══════════════════════════════════════════════
+//  CHIPS
+// ═══════════════════════════════════════════════
+const CHIPS = [
+  {id:"atk",   name:"ATK+ Chip",   desc:"+6 to all attacks",          cost:60,  owned:false, equipped:false},
+  {id:"def",   name:"DEF+ Chip",   desc:"-5 incoming damage",         cost:60,  owned:false, equipped:false},
+  {id:"xpup",  name:"XP Chip",     desc:"+50% XP gain",               cost:80,  owned:false, equipped:false},
+  {id:"lucky", name:"Lucky Chip",  desc:"+15% unlock chance",         cost:90,  owned:false, equipped:false},
+  {id:"regen", name:"Regen Chip",  desc:"Heal 5 HP between turns",    cost:100, owned:false, equipped:false},
+];
+
+// ═══════════════════════════════════════════════
+//  BYTES
+// ═══════════════════════════════════════════════
+let bytesOwned = 0;
+const BYTE_SHOP = [
+  {id:"mendo",   name:"Mendo",    desc:"+8 bonus damage/turn",  cost:50},
+  {id:"gearrat", name:"Gearrat",  desc:"Double token drops",    cost:70},
+  {id:"tombee",  name:"Tombee",   desc:"Extra +10 HP/member",   cost:80},
+];
+let boughtBytes = [];
+
+// ═══════════════════════════════════════════════
+//  ROSTER
+// ═══════════════════════════════════════════════
+const ROSTER = [
+  {name:"Freddy",     r:200,g:160,b:96,   er:0,  eg:0,  eb:0,   abilities:["Mic Toss","Pizza Wheel","Heal","Endo Arm"]},
+  {name:"Bonnie",     r:102,g:85, b:170,  er:255,eg:255,eb:0,   abilities:["Bash Jam","Guitar Blast","Heal","Neon Wall"]},
+  {name:"Chica",      r:238,g:204,b:34,   er:255,eg:140,eb:140, abilities:["Cupcake","Pizza","Heal","Party Favors"]},
+  {name:"Foxy",       r:204,g:68, b:34,   er:0,  eg:255,eb:255, abilities:["Hook Slash","Dash","Bite","Endo Arm"]},
+  {name:"Toy Freddy", r:221,g:153,b:85,   er:0,  eg:0,  eb:0,   abilities:["Mic Toss","Pizza Wheel","Party Favors","Heal"]},
+  {name:"Toy Bonnie", r:34, g:136,b:238,  er:255,eg:255,eb:0,   abilities:["Jam","Blast","Heal","Neon Wall"]},
+  {name:"Mangle",     r:238,g:238,b:238,  er:255,eg:0,  eb:0,   abilities:["Bite","Static","Hook","Regen"]},
+  {name:"BB",         r:68, g:153,b:255,  er:0,  eg:0,  eb:0,   abilities:["Pop Gun","Balloon","Heal","Distract"]},
+  {name:"Springtrap", r:85, g:102,b:34,   er:255,eg:255,eb:0,   abilities:["Spring Trap","Lunge","Poison","Heal"]},
+  {name:"Puppet",     r:34, g:34, b:34,   er:255,eg:255,eb:255, abilities:["Jumpscare","Gift Box","Regen","Heal"]},
+  {name:"RWQFSFASXC",r:68, g:0,  b:102,  er:255,eg:0,  eb:255, abilities:["Shadow Bite","Void","Regen","Teleport"]},
+  {name:"Golden Freddy",r:204,g:187,b:68,er:0,  eg:0,  eb:0,   abilities:["Mic Toss","Haunted","Heal","Freddles"]},
+];
+
+// ═══════════════════════════════════════════════
+//  ABILITY DEFS
+// ═══════════════════════════════════════════════
+const ABIL = {
+  "Mic Toss":    {dmg:14, type:"atk", desc:"Lobs a mic!"},
+  "Pizza Wheel": {dmg:18, type:"atk", desc:"Spinning pizza!"},
+  "Bash Jam":    {dmg:13, type:"atk", desc:"Musical bash"},
+  "Guitar Blast":{dmg:16, type:"atk", desc:"Sonic wave!"},
+  "Cupcake":     {dmg:15, type:"atk", desc:"Mr. Cupcake!"},
+  "Pizza":       {dmg:12, type:"atk", desc:"Pizza slice!"},
+  "Hook Slash":  {dmg:20, type:"atk", desc:"Vicious hook!"},
+  "Dash":        {dmg:17, type:"atk", desc:"Blazing dash!"},
+  "Bite":        {dmg:22, type:"atk", desc:"Fierce bite!"},
+  "Endo Arm":    {dmg:11, type:"atk", desc:"Mech arm strike"},
+  "Jam":         {dmg:14, type:"atk", desc:"Rapid jam burst"},
+  "Blast":       {dmg:17, type:"atk", desc:"Energy blast!"},
+  "Static":      {dmg:13, type:"atk", desc:"Static burst"},
+  "Hook":        {dmg:19, type:"atk", desc:"Sharp hook"},
+  "Pop Gun":     {dmg:10, type:"atk", desc:"Tiny pop gun"},
+  "Balloon":     {dmg:9,  type:"atk", desc:"Balloon bomb"},
+  "Spring Trap": {dmg:24, type:"atk", desc:"Spring snap!"},
+  "Lunge":       {dmg:20, type:"atk", desc:"Lunging strike"},
+  "Jumpscare":   {dmg:22, type:"atk", desc:"JUMPSCARE!"},
+  "Shadow Bite": {dmg:20, type:"atk", desc:"Shadow bite"},
+  "Void":        {dmg:25, type:"atk", desc:"Void burst!"},
+  "Teleport":    {dmg:18, type:"atk", desc:"Teleport strike"},
+  "Haunted":     {dmg:16, type:"atk", desc:"Haunted aura"},
+  "Freddles":    {dmg:21, type:"atk", desc:"Freddle swarm"},
+  // Heals / Buffs
+  "Heal":        {heal:30,  type:"heal",    desc:"Heal leader +30"},
+  "Regen":       {heal:15,  type:"healAll", desc:"Heal all +15"},
+  "Gift Box":    {heal:45,  type:"heal",    desc:"Big heal +45"},
+  "Neon Wall":   {shield:12,type:"shield",  desc:"Shield +12"},
+  "Party Favors":{dmg:11,   type:"atk",    desc:"Party attack"},
+  "Distract":    {type:"debuff", desc:"Enemy misses next turn"},
+  "Poison":      {dmg:8, poison:true, type:"atk", desc:"Poisons enemy"},
+};
+
+// ═══════════════════════════════════════════════
+//  PARTY SETUP
+// ═══════════════════════════════════════════════
+let unlocked = [0,1,2,3];
+let party1 = [0,1,2,3];
+let party2 = [4,5,6,7];
+let activeParty = party1;
+
+// ═══════════════════════════════════════════════
+//  BATTLE STATE
+// ═══════════════════════════════════════════════
+let bHP=[], bMaxHP=[], bShield=[];
+let eHP=0, eMaxHP=0, eRef=null;
+let ePoisoned=0, eDistracted=false;
+let btTurn=0, btLocked=false;
+let eShakeTimer=0, pShakeTarget=-1, pShakeTimer=0;
+
+// ═══════════════════════════════════════════════
+//  ENEMY TYPES
+// ═══════════════════════════════════════════════
+const ENTYPE=[
+  {name:"Gearrat",   r:136,g:136,b:68,  hp:60, atk:10, rew:20, xpr:30},
+  {name:"Ball Boy",  r:68, g:136,b:170, hp:55, atk:9,  rew:15, xpr:25},
+  {name:"Bouncer",   r:136,g:68, b:136, hp:75, atk:13, rew:25, xpr:35},
+  {name:"Security",  r:68, g:102,b:68,  hp:80, atk:14, rew:30, xpr:40},
+  {name:"Choppytop", r:170,g:102,b:34,  hp:95, atk:16, rew:38, xpr:48},
+  {name:"Mechrab",   r:102,g:136,b:170, hp:70, atk:12, rew:22, xpr:32},
+];
+const BOSSTYPE=[
+  {name:"Auto Chipper",  r:102,g:102,b:136, hp:300, atk:22, rew:150, xpr:200, isBoss:true},
+  {name:"Security Owl",  r:68, g:102,b:68,  hp:350, atk:25, rew:180, xpr:220, isBoss:true},
+  {name:"Porkpatch",     r:136,g:68, b:34,  hp:280, atk:20, rew:130, xpr:180, isBoss:true},
+  {name:"Browboy",       r:170,g:136,b:68,  hp:260, atk:18, rew:120, xpr:160, isBoss:true},
+];
+
+// ═══════════════════════════════════════════════
+//  WORLD INSTANCES
+// ═══════════════════════════════════════════════
+let wEnemies=[], wBosses=[];
+const PORTALS=[{x:2,y:2},{x:27,y:27}];
+const NPCS=[{tx:15,ty:15,name:"Mendo",col:[255,136,255]}];
+let nearShop=false;
+
+// ═══════════════════════════════════════════════
+//  MAP
+// ═══════════════════════════════════════════════
+// 0=grass 1=tree 2=path 3=water 4=darkgrass 5=flowers 6=sand
+const wMap=[];
+function buildMap(){
+  // seed-based deterministic pseudo-random
+  let s=12345;
+  const rng=()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff};
+
+  for(let y=0;y<MAP_H;y++){wMap[y]=[];for(let x=0;x<MAP_W;x++)wMap[y][x]=0}
+
+  // Borders
+  for(let i=0;i<MAP_W;i++){wMap[0][i]=1;wMap[MAP_H-1][i]=1}
+  for(let j=0;j<MAP_H;j++){wMap[j][0]=1;wMap[j][MAP_W-1]=1}
+
+  // Cross paths
+  for(let x=1;x<MAP_W-1;x++){wMap[15][x]=2;wMap[x][15]=2}
+
+  // Water lake
+  for(let y=20;y<=24;y++)for(let x=20;x<=24;x++)wMap[y][x]=3;
+  // Sand area around water
+  for(let y=19;y<=25;y++)for(let x=19;x<=25;x++)if(wMap[y][x]===0)wMap[y][x]=6;
+
+  // Dark grass danger zone
+  for(let y=1;y<MAP_H-1;y++)for(let x=1;x<MAP_W-1;x++){
+    if(wMap[y][x]===0 && (x>20||y>20))wMap[y][x]=4;
+  }
+
+  // Random trees
+  for(let i=0;i<100;i++){
+    let tx=Math.floor(rng()*(MAP_W-2))+1;
+    let ty=Math.floor(rng()*(MAP_H-2))+1;
+    if(wMap[ty][tx]===0&&ty!==15&&tx!==15)wMap[ty][tx]=1;
+  }
+
+  // Flowers
+  for(let i=0;i<30;i++){
+    let tx=Math.floor(rng()*(MAP_W-2))+1;
+    let ty=Math.floor(rng()*(MAP_H-2))+1;
+    if(wMap[ty][tx]===0||wMap[ty][tx]===4)wMap[ty][tx]=5;
+  }
+
+  // NPC tiles clear
+  NPCS.forEach(n=>{wMap[n.ty][n.tx]=0});
+  // Portal tiles clear
+  PORTALS.forEach(p=>{wMap[p.y][p.x]=0});
+  // Player start
+  wMap[15][15]=2;
+}
+
+function spawnWorldEnemies(){
+  wEnemies=[];wBosses=[];
+  const ePos=[
+    [5,4],[18,5],[4,18],[22,8],[8,22],[12,5],[5,12],
+    [24,10],[10,24],[17,20],[20,17],[24,24],[7,7],[22,3]
+  ];
+  ePos.forEach(([x,y],i)=>{
+    let t=ENTYPE[i%ENTYPE.length];
+    wEnemies.push({...JSON.parse(JSON.stringify(t)),wx:x,wy:y,
+      px:x*TILE+TILE/2,py:y*TILE+TILE/2,dead:false,animT:Math.random()*6});
+  });
+  // Bosses at corners
+  [[27,27],[2,27],[27,2],[14,2]].forEach(([x,y],i)=>{
+    if(i<BOSSTYPE.length){
+      let b=BOSSTYPE[i];
+      wBosses.push({...JSON.parse(JSON.stringify(b)),
+        px:x*TILE+TILE/2,py:y*TILE+TILE/2,dead:false});
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  PLAYER
+// ═══════════════════════════════════════════════
+const player={x:15*TILE+TILE/2,y:15*TILE+TILE/2,spd:3,frame:0,ft:0,dir:0};
+const cam={x:0,y:0};
+const keys={};
+
+function walkable(x,y){
+  let tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
+  if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H)return false;
+  let t=wMap[ty][tx];
+  return t!==1&&t!==3; // trees and water block
+}
+
+function updatePlayer(){
+  if(gameState!=="world")return;
+  let dx=0,dy=0;
+  if(keys["KeyW"]||keys["ArrowUp"])dy=-player.spd;
+  if(keys["KeyS"]||keys["ArrowDown"])dy=player.spd;
+  if(keys["KeyA"]||keys["ArrowLeft"])dx=-player.spd;
+  if(keys["KeyD"]||keys["ArrowRight"])dx=player.spd;
+  if(dx&&dy){dx*=0.707;dy*=0.707}
+
+  if(dx||dy){
+    player.ft++;
+    if(player.ft>6){player.frame=(player.frame+1)%4;player.ft=0}
+    if(dx>0)player.dir=3;else if(dx<0)player.dir=2;
+    else if(dy<0)player.dir=1;else player.dir=0;
+    let m=10;
+    let nx=player.x+dx,ny=player.y+dy;
+    if(walkable(nx+m,player.y+20)&&walkable(nx-m,player.y+20)&&
+       walkable(nx+m,player.y-5)&&walkable(nx-m,player.y-5))player.x=nx;
+    if(walkable(player.x+m,ny+20)&&walkable(player.x-m,ny+20)&&
+       walkable(player.x+m,ny-5)&&walkable(player.x-m,ny-5))player.y=ny;
+  }else{player.frame=0;player.ft=0}
+
+  cam.x=Math.max(0,Math.min(MAP_W*TILE-VIEW_W,player.x-VIEW_W/2));
+  cam.y=Math.max(0,Math.min(MAP_H*TILE-VIEW_H,player.y-VIEW_H/2));
+
+  checkWorldCollisions();
+}
+
+function checkWorldCollisions(){
+  // Enemy chase & encounter
+  wEnemies.forEach(e=>{
+    if(e.dead)return;
+    let dist=Math.hypot(player.x-e.px,player.y-e.py);
+    if(dist<180){
+      let a=Math.atan2(player.y-e.py,player.x-e.px);
+      e.px+=Math.cos(a)*1.4;e.py+=Math.sin(a)*1.4;
+    }
+    if(dist<32)startBattle(e,false);
+  });
+  // Boss encounter
+  wBosses.forEach(b=>{
+    if(b.dead)return;
+    if(Math.hypot(player.x-b.px,player.y-b.py)<36)startBattle(b,true);
+  });
+  // Portals
+  PORTALS.forEach((p,i)=>{
+    if(Math.hypot(player.x-p.x*TILE-TILE/2,player.y-p.y*TILE-TILE/2)<28){
+      let dest=PORTALS[(i+1)%PORTALS.length];
+      player.x=dest.x*TILE+TILE/2+60;
+      player.y=dest.y*TILE+TILE/2+60;
+      notify("⊹ Teleported!");
+    }
+  });
+  // NPC
+  let anyNear=false;
+  NPCS.forEach(n=>{
+    if(Math.hypot(player.x-n.tx*TILE-TILE/2,player.y-n.ty*TILE-TILE/2)<44){
+      anyNear=true;
+      if(!nearShop)openShop();
+    }
+  });
+  if(!anyNear)nearShop=false;
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW HELPERS
+// ═══════════════════════════════════════════════
+function px(wx){return wx-cam.x}
+function py(wy){return wy-cam.y}
+
+// Draw a blocky FNAF-style character sprite
+function drawChar(c2,cx,cy,char,scale,showName){
+  const s=scale||1;
+  const r=char.r,g=char.g,b=char.b;
+  const er=char.er,eg=char.eg,eb=char.eb;
+  // Shadow
+  c2.fillStyle="rgba(0,0,0,0.25)";
+  c2.beginPath();c2.ellipse(cx,cy+18*s,13*s,5*s,0,0,Math.PI*2);c2.fill();
+  // Body
+  c2.fillStyle=`rgb(${Math.max(0,r-30)},${Math.max(0,g-30)},${Math.max(0,b-30)})`;
+  c2.fillRect(cx-13*s,cy-8*s,26*s,24*s);
+  c2.fillStyle=`rgb(${r},${g},${b})`;
+  c2.fillRect(cx-11*s,cy-6*s,22*s,20*s);
+  // Head
+  c2.fillStyle=`rgb(${Math.max(0,r-20)},${Math.max(0,g-20)},${Math.max(0,b-20)})`;
+  c2.fillRect(cx-12*s,cy-30*s,24*s,22*s);
+  c2.fillStyle=`rgb(${r},${g},${b})`;
+  c2.fillRect(cx-10*s,cy-28*s,20*s,18*s);
+  // Ears (bunny-style for some, bear for others)
+  c2.fillStyle=`rgb(${r},${g},${b})`;
+  c2.fillRect(cx-10*s,cy-42*s,6*s,14*s);
+  c2.fillRect(cx+4*s, cy-42*s,6*s,14*s);
+  // Eyes
+  c2.fillStyle=`rgb(${er},${eg},${eb})`;
+  c2.fillRect(cx-7*s,cy-24*s,5*s,5*s);
+  c2.fillRect(cx+2*s, cy-24*s,5*s,5*s);
+  // Pupils
+  c2.fillStyle="black";
+  c2.fillRect(cx-6*s,cy-23*s,2*s,2*s);
+  c2.fillRect(cx+3*s, cy-23*s,2*s,2*s);
+  // Muzzle
+  c2.fillStyle=`rgb(${Math.min(255,r+50)},${Math.min(255,g+30)},${Math.max(0,b-20)})`;
+  c2.fillRect(cx-5*s,cy-18*s,10*s,7*s);
+  // Nose
+  c2.fillStyle="#cc3311";
+  c2.fillRect(cx-1*s,cy-15*s,3*s,2*s);
+  if(showName&&char.name){
+    c2.fillStyle="rgba(0,0,0,0.6)";
+    c2.fillRect(cx-20*s,cy+20*s,40*s,10*s);
+    c2.fillStyle="white";
+    c2.font=`${Math.max(6,7*s)}px 'Press Start 2P',monospace`;
+    c2.textAlign="center";
+    c2.fillText(char.name.substring(0,7),cx,cy+27*s);
+  }
+}
+
+function drawEnemySprite(c2,cx,cy,enemy,shake){
+  let ox=shake?(Math.random()-0.5)*8:0;
+  const r=enemy.r,g=enemy.g,b=enemy.b;
+  // Shadow
+  c2.fillStyle="rgba(0,0,0,0.3)";
+  c2.beginPath();c2.ellipse(cx+ox,cy+32,25,8,0,0,Math.PI*2);c2.fill();
+  // Body
+  c2.fillStyle=`rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`;
+  c2.fillRect(cx-28+ox,cy-30,56,60);
+  c2.fillStyle=`rgb(${r},${g},${b})`;
+  c2.fillRect(cx-24+ox,cy-26,48,52);
+  // Head
+  c2.fillStyle=`rgb(${Math.max(0,r-20)},${Math.max(0,g-20)},${Math.max(0,b-20)})`;
+  c2.fillRect(cx-22+ox,cy-68,44,44);
+  c2.fillStyle=`rgb(${r},${g},${b})`;
+  c2.fillRect(cx-19+ox,cy-64,38,36);
+  // Eyes glow
+  c2.fillStyle="#ffff00";
+  c2.fillRect(cx-13+ox,cy-56,9,9);
+  c2.fillRect(cx+4+ox, cy-56,9,9);
+  c2.fillStyle="#000";
+  c2.fillRect(cx-11+ox,cy-54,4,4);
+  c2.fillRect(cx+6+ox, cy-54,4,4);
+  // Mouth
+  c2.fillStyle="#000";
+  for(let i=0;i<5;i++)c2.fillRect(cx-10+i*5+ox,cy-42,3,6);
+  // HP bar
+  let frac=Math.max(0,eHP/eMaxHP);
+  c2.fillStyle="#1a0020";c2.fillRect(cx-50,cy-92,100,12);
+  c2.fillStyle=frac>.5?"#44ff44":frac>.25?"#ffaa00":"#ff3333";
+  c2.fillRect(cx-50,cy-92,100*frac,12);
+  c2.strokeStyle="#7744cc";c2.lineWidth=1;c2.strokeRect(cx-50,cy-92,100,12);
+  // Name
+  c2.fillStyle="#ffdd88";
+  c2.font="8px 'Press Start 2P',monospace";
+  c2.textAlign="center";
+  if(enemy.isBoss){
+    c2.fillStyle="#ff8844";
+    c2.fillText("★ BOSS ★",cx,cy-100);
+  }
+  c2.fillStyle="white";
+  c2.fillText(enemy.name,cx,cy-108);
+  // HP text
+  c2.fillStyle="#88ff88";
+  c2.font="6px 'Press Start 2P',monospace";
+  c2.fillText(Math.max(0,eHP)+"/"+eMaxHP,cx,cy-82);
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW WORLD
+// ═══════════════════════════════════════════════
+const TCOL={
+  0:"#3db53d",1:"#2d5a1b",2:"#c8a860",3:"#2244aa",
+  4:"#1a6a1a",5:"#44bb44",6:"#d4b96a"
+};
+const TDARK={
+  0:"#35a535",1:"#264e18",2:"#b8984f",3:"#1c3890",
+  4:"#166616",5:"#3daa3d",6:"#c4a95a"
+};
+
+function drawWorld(){
+  // Background
+  ctx.fillStyle="#2d9c2d";
+  ctx.fillRect(0,0,VIEW_W,VIEW_H);
+
+  // Tiles
+  let sx0=Math.floor(cam.x/TILE);
+  let sy0=Math.floor(cam.y/TILE);
+  let sx1=Math.min(MAP_W,Math.ceil((cam.x+VIEW_W)/TILE));
+  let sy1=Math.min(MAP_H,Math.ceil((cam.y+VIEW_H)/TILE));
+
+  for(let ty=sy0;ty<sy1;ty++){
+    for(let tx=sx0;tx<sx1;tx++){
+      let t=wMap[ty]?.[tx]??0;
+      let dx=tx*TILE-cam.x,dy=ty*TILE-cam.y;
+      if(t===1){
+        // Tree
+        ctx.fillStyle="#3db53d";ctx.fillRect(dx,dy,TILE,TILE);
+        ctx.fillStyle="#264e18";ctx.fillRect(dx+6,dy+6,TILE-12,TILE-12);
+        ctx.fillStyle="#4db84d";
+        ctx.beginPath();ctx.arc(dx+TILE/2,dy+TILE/2-4,16,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#3da83d";
+        ctx.beginPath();ctx.arc(dx+TILE/2-6,dy+TILE/2+2,11,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(dx+TILE/2+6,dy+TILE/2+2,11,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#6b2c00";ctx.fillRect(dx+TILE/2-6,dy+TILE-14,12,14);
+      }else if(t===3){
+        // Water animate
+        let wt=Date.now()/1200;
+        ctx.fillStyle="#2244aa";ctx.fillRect(dx,dy,TILE,TILE);
+        ctx.fillStyle=`rgba(68,102,200,${0.4+0.2*Math.sin(wt+tx+ty)})`;
+        ctx.fillRect(dx+4,dy+TILE/2-4,TILE-8,8);
+        ctx.fillStyle="rgba(120,160,255,0.2)";
+        ctx.fillRect(dx+2,dy+8,TILE-4,6);
+      }else if(t===2){
+        // Path
+        ctx.fillStyle="#c8a860";ctx.fillRect(dx,dy,TILE,TILE);
+        ctx.fillStyle="#b89850";ctx.fillRect(dx+3,dy+3,TILE-6,TILE-6);
+        ctx.fillStyle="#c8a860";ctx.fillRect(dx+6,dy+6,TILE-12,TILE-12);
+      }else if(t===5){
+        // Flowers
+        ctx.fillStyle="#44bb44";ctx.fillRect(dx,dy,TILE,TILE);
+        ctx.fillStyle="#ffee22";
+        ctx.fillRect(dx+8,dy+8,5,5);ctx.fillRect(dx+28,dy+16,5,5);
+        ctx.fillRect(dx+14,dy+28,5,5);ctx.fillRect(dx+36,dy+10,5,5);
+      }else{
+        ctx.fillStyle=TCOL[t]||"#3db53d";ctx.fillRect(dx,dy,TILE,TILE);
+        // subtle grid
+        ctx.fillStyle=TDARK[t]||"#35a535";
+        ctx.fillRect(dx,dy,2,TILE);ctx.fillRect(dx,dy,TILE,2);
+      }
+    }
+  }
+
+  // Zone labels
+  let zones=[
+    {tx:3,ty:3,label:"Fazbear Hills"},
+    {tx:3,ty:17,label:"Choppy's Woods"},
+    {tx:17,ty:3,label:"Lilygear Lake"},
+    {tx:17,ty:17,label:"Deep-Metal Mine"},
+    {tx:22,ty:22,label:"Pinwheel Funhouse"},
+  ];
+  ctx.font="6px 'Press Start 2P',monospace";
+  ctx.textAlign="center";
+  zones.forEach(z=>{
+    let dx=z.tx*TILE-cam.x+TILE/2,dy=z.ty*TILE-cam.y;
+    if(dx>-80&&dx<VIEW_W+80&&dy>-20&&dy<VIEW_H+20){
+      ctx.fillStyle="rgba(0,0,0,0.5)";
+      let w=ctx.measureText(z.label).width;
+      ctx.fillRect(dx-w/2-3,dy-10,w+6,12);
+      ctx.fillStyle="#ffdd88";
+      ctx.fillText(z.label,dx,dy);
+    }
+  });
+
+  // Portals
+  PORTALS.forEach((p,i)=>{
+    let t=Date.now()/1000;
+    let dx=p.x*TILE+TILE/2-cam.x,dy=p.y*TILE+TILE/2-cam.y;
+    let hue=(t*60+i*180)%360;
+    ctx.save();
+    ctx.shadowColor=`hsl(${hue},100%,60%)`;ctx.shadowBlur=16;
+    ctx.fillStyle=`hsl(${hue},100%,50%)`;
+    ctx.beginPath();ctx.arc(dx,dy,14+Math.sin(t*3)*2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=`hsl(${(hue+60)%360},80%,80%)`;
+    ctx.beginPath();ctx.arc(dx,dy,8,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    ctx.fillStyle="#ffeeaa";ctx.font="5px 'Press Start 2P',monospace";
+    ctx.textAlign="center";ctx.fillText("WARP",dx,dy+28);
+  });
+
+  // NPCs
+  NPCS.forEach(n=>{
+    let dx=n.tx*TILE+TILE/2-cam.x,dy=n.ty*TILE+TILE/2-cam.y;
+    let t=Date.now()/600;
+    // Bounce
+    let by=Math.floor(Math.abs(Math.sin(t)))*2;
+    ctx.fillStyle=`rgb(${n.col[0]},${n.col[1]},${n.col[2]})`;
+    ctx.fillRect(dx-10,dy-28-by,20,28);
+    ctx.fillRect(dx-8, dy-42-by,16,16);
+    ctx.fillStyle="white";
+    // Speech bubble
+    ctx.fillStyle="white";ctx.fillRect(dx-12,dy-58,24,14);
+    ctx.fillStyle="#ff44ff";
+    ctx.font="6px 'Press Start 2P',monospace";
+    ctx.textAlign="center";ctx.fillText("!",dx,dy-48);
+    ctx.fillStyle="#ff88ff";ctx.font="5px 'Press Start 2P',monospace";
+    ctx.fillText(n.name,dx,dy+8);
+    ctx.fillStyle="rgba(0,0,0,0.5)";ctx.font="5px 'Press Start 2P',monospace";
+    ctx.fillText("[E]",dx,dy+18);
+  });
+
+  // World enemies
+  wEnemies.forEach(e=>{
+    if(e.dead)return;
+    let dx=e.px-cam.x,dy=e.py-cam.y;
+    if(dx<-60||dx>VIEW_W+60||dy<-60||dy>VIEW_H+60)return;
+    let t=(Date.now()/600+e.animT)%(Math.PI*2);
+    let bob=Math.floor(Math.sin(t)*2);
+    ctx.fillStyle=`rgb(${e.r},${e.g},${e.b})`;
+    ctx.fillRect(dx-14,dy-26+bob,28,28);
+    ctx.fillRect(dx-10,dy-40+bob,20,16);
+    ctx.fillStyle="#ffff00";
+    ctx.fillRect(dx-5,dy-35+bob,4,4);
+    ctx.fillRect(dx+1,dy-35+bob,4,4);
+    ctx.fillStyle="#aaaaaa";
+    ctx.font="5px 'Press Start 2P',monospace";
+    ctx.textAlign="center";
+    ctx.fillText(e.name,dx,dy+12);
+  });
+
+  // World bosses
+  wBosses.forEach(b=>{
+    if(b.dead)return;
+    let dx=b.px-cam.x,dy=b.py-cam.y;
+    if(dx<-80||dx>VIEW_W+80||dy<-80||dy>VIEW_H+80)return;
+    let t=Date.now()/500;
+    let hue=(t*40)%360;
+    ctx.save();
+    ctx.shadowColor=`hsl(${hue},100%,50%)`;ctx.shadowBlur=20;
+    ctx.fillStyle=`hsl(${hue},60%,35%)`;
+    ctx.fillRect(dx-22,dy-46,44,50);ctx.fillRect(dx-18,dy-68,36,26);
+    ctx.restore();
+    ctx.fillStyle="#ff4444";
+    ctx.fillRect(dx-9,dy-60,7,7);ctx.fillRect(dx+2,dy-60,7,7);
+    ctx.fillStyle="#ff8844";
+    ctx.font="6px 'Press Start 2P',monospace";ctx.textAlign="center";
+    ctx.fillText("★ "+b.name,dx,dy+16);
+  });
+
+  // Player character
+  let plx=player.x-cam.x, ply=player.y-cam.y;
+  // Walk bob
+  let bob=player.frame%2===1?-1:0;
+  drawChar(ctx,plx,ply+bob,ROSTER[activeParty[0]],1,false);
+  // Player arrow indicator
+  ctx.fillStyle="#ffdd55";
+  ctx.font="10px monospace";ctx.textAlign="center";
+  ctx.fillText("▼",plx,ply-52);
+
+  // Minimap
+  drawMinimap();
+
+  // Zone/area darkening for danger zones
+  let ptx=Math.floor(player.x/TILE),pty=Math.floor(player.y/TILE);
+  if(wMap[pty]?.[ptx]===4){
+    ctx.fillStyle="rgba(0,0,0,0.08)";
+    ctx.fillRect(0,0,VIEW_W,VIEW_H);
+  }
+}
+
+function drawMinimap(){
+  const mw=90,mh=90,mx=VIEW_W-mw-6,my=6;
+  ctx.fillStyle="rgba(0,0,0,0.7)";
+  ctx.fillRect(mx,my,mw,mh);
+  for(let y=0;y<MAP_H;y++){
+    for(let x=0;x<MAP_W;x++){
+      let t=wMap[y][x];
+      let col=t===1?"#264e18":t===2?"#c8a860":t===3?"#2244aa":
+              t===4?"#1a6a1a":t===5?"#44bb44":t===6?"#c4a95a":"#3db53d";
+      ctx.fillStyle=col;
+      ctx.fillRect(mx+x*(mw/MAP_W),my+y*(mh/MAP_H),mw/MAP_W+.5,mh/MAP_H+.5);
+    }
+  }
+  wEnemies.forEach(e=>{
+    if(e.dead)return;
+    ctx.fillStyle="#ff4444";
+    ctx.fillRect(mx+(e.px/TILE)*(mw/MAP_W)-1,my+(e.py/TILE)*(mh/MAP_H)-1,3,3);
+  });
+  wBosses.forEach(b=>{
+    if(b.dead)return;
+    ctx.fillStyle="#ff00ff";
+    ctx.fillRect(mx+(b.px/TILE)*(mw/MAP_W)-2,my+(b.py/TILE)*(mh/MAP_H)-2,4,4);
+  });
+  ctx.fillStyle="#ffff00";
+  ctx.fillRect(mx+(player.x/TILE)*(mw/MAP_W)-2,my+(player.y/TILE)*(mh/MAP_H)-2,4,4);
+  ctx.strokeStyle="#7744cc";ctx.lineWidth=1;
+  ctx.strokeRect(mx,my,mw,mh);
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW BATTLE
+// ═══════════════════════════════════════════════
+let battleBgT=0;
+function drawBattle(){
+  battleBgT+=0.4;
+  // Sky gradient
+  let grad=ctx.createLinearGradient(0,0,0,VIEW_H-190);
+  grad.addColorStop(0,"#0a0618");
+  grad.addColorStop(0.5,"#1a1040");
+  grad.addColorStop(1,"#2a1858");
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,VIEW_W,VIEW_H-190);
+
+  // Stars
+  ctx.fillStyle="rgba(255,255,255,0.8)";
+  for(let i=0;i<50;i++){
+    let sx=(i*83+17)%VIEW_W,sy=(i*61+11)%(VIEW_H-280);
+    let br=0.5+0.5*Math.sin(battleBgT*0.05+i);
+    ctx.globalAlpha=br;
+    ctx.fillRect(sx,sy,(i%3)+1,(i%3)+1);
+  }
+  ctx.globalAlpha=1;
+
+  // Ground platform
+  ctx.fillStyle="#2a1858";
+  ctx.fillRect(0,VIEW_H-280,VIEW_W,90);
+  ctx.fillStyle="#3b246e";
+  ctx.fillRect(0,VIEW_H-280,VIEW_W,8);
+  // Checkerboard floor
+  for(let i=0;i<20;i++){
+    ctx.fillStyle=i%2===0?"rgba(50,30,90,0.4)":"rgba(30,15,60,0.4)";
+    ctx.fillRect(i*40,VIEW_H-275,40,80);
+  }
+
+  // Enemy sprite
+  if(eRef){
+    drawEnemySprite(ctx,580,VIEW_H-300,eRef,eShakeTimer>0);
+    if(eShakeTimer>0)eShakeTimer--;
+  }
+
+  // Party sprites on left
+  activeParty.forEach((id,i)=>{
+    let cpx=80+i*85, cpy=VIEW_H-255;
+    if(bHP[i]<=0){ctx.globalAlpha=0.3}
+    drawChar(ctx,cpx,cpy,ROSTER[id],1.1,false);
+    ctx.globalAlpha=1;
+    // HP bar
+    let frac=Math.max(0,bHP[i])/bMaxHP[i];
+    ctx.fillStyle="#000";ctx.fillRect(cpx-22,cpy+24,44,7);
+    ctx.fillStyle=frac>.5?"#44ff44":frac>.25?"#ffaa00":"#ff3333";
+    ctx.fillRect(cpx-22,cpy+24,44*frac,7);
+    ctx.strokeStyle="#5533aa";ctx.lineWidth=1;ctx.strokeRect(cpx-22,cpy+24,44,7);
+    // Turn arrow
+    if(btTurn===i&&!btLocked&&bHP[i]>0){
+      ctx.fillStyle="#ffdd55";
+      ctx.font="10px monospace";ctx.textAlign="center";
+      ctx.fillText("▼",cpx,cpy-48);
+    }
+    // Shield indicator
+    if(bShield[i]>0){
+      ctx.strokeStyle="#4488ff";ctx.lineWidth=2;
+      ctx.strokeRect(cpx-16,cpy-40,32,50);
+    }
+  });
+
+  // POISON indicator on enemy
+  if(ePoisoned>0){
+    ctx.fillStyle="#44ff44";
+    ctx.font="8px 'Press Start 2P',monospace";ctx.textAlign="center";
+    ctx.fillText("POISONED ("+ePoisoned+")",580,VIEW_H-380);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  BATTLE LOGIC
+// ═══════════════════════════════════════════════
+function startBattle(enemy,isBoss){
+  if(gameState!=="world")return;
+  gameState="battle";
+  btLocked=false;
+  eRef=enemy;
+  eHP=enemy.hp;eMaxHP=enemy.hp;
+  ePoisoned=0;eDistracted=false;
+
+  let base=80+level*12+(boughtBytes.includes("tombee")?10:0);
+  bMaxHP=activeParty.map(()=>base);
+  bHP=[...bMaxHP];
+  bShield=activeParty.map(()=>0);
+  btTurn=0;
+
+  document.getElementById("battleBottom").style.display="block";
+  renderCmds();
+  updatePartyPanel();
+  setBMsg(isBoss?"⚠ BOSS FIGHT!\n"+enemy.name+" appeared!":enemy.name+" appeared!\nChoose your action.");
+}
+
+function renderCmds(){
+  const panel=document.getElementById("cmdPanel");
+  panel.innerHTML=`<div id="cmdTitle"></div>`;
+
+  // Find next living turn
+  let orig=btTurn;
+  let attempts=0;
+  while(bHP[btTurn]<=0&&attempts<activeParty.length){
+    btTurn=(btTurn+1)%activeParty.length;attempts++;
+  }
+  if(attempts>=activeParty.length){checkAllDead();return}
+
+  let char=ROSTER[activeParty[btTurn]];
+  document.getElementById("cmdTitle").textContent=char.name+"'s turn:";
+
+  char.abilities.forEach(a=>{
+    let ab=ABIL[a];if(!ab)return;
+    let b=document.createElement("button");
+    b.className="btn";
+    b.style.fontSize="6px";
+    b.textContent=a;
+    b.title=ab.desc||"";
+    b.onclick=()=>useAbility(a);
+    panel.appendChild(b);
+  });
+}
+
+function useAbility(aName){
+  if(btLocked)return;
+  let ab=ABIL[aName];if(!ab)return;
+  btLocked=true;
+  let atkBonus=(CHIPS.find(c=>c.id==="atk"&&c.equipped)?6:0)
+              +(bytesOwned>0&&boughtBytes.includes("mendo")?8:0);
+  let charName=ROSTER[activeParty[btTurn]].name;
+
+  if(ab.type==="heal"){
+    let h=ab.heal;
+    bHP[btTurn]=Math.min(bMaxHP[btTurn],bHP[btTurn]+h);
+    setBMsg(charName+" used "+aName+"!\nRestored "+h+" HP.");
+    spawnFloat(false,"+"+h,"#44ff88",btTurn);
+    updatePartyPanel();
+    doEndTurn();
+  }else if(ab.type==="healAll"){
+    let h=ab.heal;
+    activeParty.forEach((_,i)=>{bHP[i]=Math.min(bMaxHP[i],bHP[i]+h)});
+    setBMsg(charName+" used "+aName+"!\nAll members healed +"+h+".");
+    updatePartyPanel();doEndTurn();
+  }else if(ab.type==="shield"){
+    bShield[btTurn]+=ab.shield;
+    setBMsg(charName+" used "+aName+"!\nShield +"+ab.shield+".");
+    doEndTurn();
+  }else if(ab.type==="debuff"){
+    eDistracted=true;
+    setBMsg(charName+" used "+aName+"!\nEnemy will miss next turn!");
+    doEndTurn();
+  }else{
+    // Attack
+    let dmg=(ab.dmg||0)+atkBonus;
+    let poison=ab.poison;
+    eHP-=dmg;eShakeTimer=6;
+    if(poison){ePoisoned=3;setBMsg(charName+" used "+aName+"!\n"+dmg+" damage + POISON!")}
+    else setBMsg(charName+" used "+aName+"!\n"+dmg+" damage!");
+    spawnFloat(true,"-"+dmg,"#ffdd44");
+    updatePartyPanel();
+    if(eHP<=0){setBMsg(eRef.name+" is defeated!\nVICTORY!");setTimeout(doVictory,1200);return}
+    doEndTurn();
+  }
+}
+
+function doEndTurn(){
+  // Enemy attacks after player acts
+  setTimeout(()=>{
+    doEnemyTurn();
+    let next=(btTurn+1)%activeParty.length;
+    let tries=0;
+    while(bHP[next]<=0&&tries<activeParty.length){next=(next+1)%activeParty.length;tries++}
+    btTurn=next;
+    btLocked=false;
+    renderCmds();
+    updatePartyPanel();
+  },800);
+}
+
+function doEnemyTurn(){
+  // Regen chip
+  if(CHIPS.find(c=>c.id==="regen"&&c.equipped)){
+    let ri=activeParty.findIndex((_,i)=>bHP[i]>0);
+    if(ri>=0){bHP[ri]=Math.min(bMaxHP[ri],bHP[ri]+5)}
+  }
+
+  if(eDistracted){
+    eDistracted=false;
+    setBMsg(eRef.name+" is distracted\nand misses this turn!");
+    return;
+  }
+  if(ePoisoned>0){
+    let pd=10;eHP-=pd;ePoisoned--;
+    spawnFloat(true,"-"+pd,"#44ff44");
+    if(eHP<=0){setBMsg(eRef.name+" fainted from poison!");setTimeout(doVictory,1000);return}
+  }
+
+  // Find target
+  let target=-1;
+  for(let i=0;i<bHP.length;i++){if(bHP[i]>0){target=i;break}}
+  if(target<0){return}
+
+  let defBonus=CHIPS.find(c=>c.id==="def"&&c.equipped)?5:0;
+  let dmg=Math.max(1,(eRef.atk||10)-defBonus);
+  if(bShield[target]>0){dmg=Math.max(0,dmg-bShield[target]);bShield[target]=0}
+  bHP[target]-=dmg;
+  spawnFloat(false,"-"+dmg,"#ff4444",target);
+  setBMsg(eRef.name+" attacks "+ROSTER[activeParty[target]].name+"!\n"+dmg+" damage!");
+  updatePartyPanel();
+  checkAllDead();
+}
+
+function checkAllDead(){
+  if(bHP.every(h=>h<=0)){
+    setTimeout(()=>{notify("☠ Party defeated... try again!");endBattle();},1000);
+  }
+}
+
+function doVictory(){
+  let xpGain=eRef.xpr||30;
+  let tkGain=eRef.rew||20;
+  let xpMult=CHIPS.find(c=>c.id==="xpup"&&c.equipped)?1.5:1;
+  if(boughtBytes.includes("gearrat"))tkGain*=2;
+  xpGain=Math.floor(xpGain*xpMult);
+
+  tokens+=tkGain;xp+=xpGain;
+
+  // Level up
+  let leveled=false;
+  while(xp>=xpNext){xp-=xpNext;level++;xpNext=Math.floor(level*100*1.1);leveled=true}
+  if(leveled)notify("🌟 LEVEL UP! Now level "+level+"!");
+
+  // Unlock chance
+  let uchance=0.2+(CHIPS.find(c=>c.id==="lucky"&&c.equipped)?0.15:0);
+  if(Math.random()<uchance){
+    let cands=[];
+    for(let i=0;i<ROSTER.length;i++)if(!unlocked.includes(i))cands.push(i);
+    if(cands.length>0){
+      let id=cands[Math.floor(Math.random()*cands.length)];
+      unlocked.push(id);notify("🎉 Unlocked: "+ROSTER[id].name+"!");
+    }
+  }
+
+  updateHUD();
+  eRef.dead=true;
+
+  setBMsg("★ VICTORY! ★\n+"+tkGain+" tokens  +"+xpGain+" XP");
+  setTimeout(endBattle,1800);
+}
+
+function endBattle(){
+  document.getElementById("battleBottom").style.display="none";
+  gameState="world";btLocked=false;
+}
+
+// ═══════════════════════════════════════════════
+//  BATTLE UI HELPERS
+// ═══════════════════════════════════════════════
+function setBMsg(msg){
+  document.getElementById("battleMsg").textContent=msg;
+}
+function updatePartyPanel(){
+  const p=document.getElementById("partyPanel");
+  p.innerHTML="<div style='color:#aa88ff;font-size:6px;margin-bottom:6px'>PARTY HP</div>";
+  activeParty.forEach((id,i)=>{
+    let frac=Math.max(0,bHP[i])/bMaxHP[i];
+    let dead=bHP[i]<=0;
+    let row=document.createElement("div");row.className="phrow";
+    let cls=frac<0.3?"crit":frac<0.5?"low":"";
+    row.innerHTML=`
+      <span style="width:44px;overflow:hidden;white-space:nowrap;color:${dead?"#444":btTurn===i?"#ffdd55":"#9988cc"}">${ROSTER[id].name.substring(0,5)}</span>
+      <div class="hbg"><div class="hfill ${cls}" style="width:${Math.round(frac*100)}%"></div></div>
+      <span style="width:24px;text-align:right;color:${dead?"#444":"white"}">${Math.max(0,bHP[i])}</span>`;
+    p.appendChild(row);
+  });
+}
+
+function spawnFloat(onEnemy,val,color,memberIdx=0){
+  let el=document.createElement("div");
+  el.className="dfloat";el.style.color=color;
+  if(onEnemy){
+    el.style.left=(480+(Math.random()-.5)*50)+"px";
+    el.style.top=(60+(Math.random()-.5)*30)+"px";
+  }else{
+    el.style.left=(60+memberIdx*85+(Math.random()-.5)*20)+"px";
+    el.style.top=(150+(Math.random()-.5)*20)+"px";
+  }
+  el.textContent=val;
+  document.getElementById("wrap").appendChild(el);
+  setTimeout(()=>el.remove(),950);
+}
+
+// ═══════════════════════════════════════════════
+//  PARTY SWITCH
+// ═══════════════════════════════════════════════
+function switchParty(){
+  if(gameState!=="world")return;
+  activeParty=(activeParty===party1)?party2:party1;
+  notify("Switched to: "+activeParty.map(i=>ROSTER[i]?.name).filter(Boolean).join(", "));
+}
+
+// ═══════════════════════════════════════════════
+//  SHOP
+// ═══════════════════════════════════════════════
+function openShop(){
+  if(nearShop)return;
+  nearShop=true;
+  if(gameState!=="world"&&gameState!=="shop")return;
+  gameState="shop";
+  const items=document.getElementById("shopItems");
+  items.innerHTML="";
+  // Chips for sale
+  CHIPS.forEach(c=>{
+    let div=document.createElement("div");div.className="sitem";
+    div.innerHTML=`<div><div class="sitem-name">${c.name}</div><div class="sitem-desc">${c.desc}</div></div>
+      <button class="btn" onclick="buyChip('${c.id}',${c.cost})"
+        style="${c.owned?'opacity:.4;cursor:default':''}">
+        ${c.owned?"OWNED":"BUY "+c.cost+"💰"}</button>`;
+    items.appendChild(div);
+  });
+  // Bytes for sale
+  BYTE_SHOP.forEach(b=>{
+    let has=boughtBytes.includes(b.id);
+    let div=document.createElement("div");div.className="sitem";
+    div.innerHTML=`<div><div class="sitem-name">${b.name} Byte</div><div class="sitem-desc">${b.desc}</div></div>
+      <button class="btn" onclick="buyByte('${b.id}',${b.cost})" style="${has?'opacity:.4;cursor:default':''}">
+        ${has?"OWNED":"BUY "+b.cost+"💰"}</button>`;
+    items.appendChild(div);
+  });
+  document.getElementById("shopUI").style.display="block";
+}
+
+function closeShop(){
+  document.getElementById("shopUI").style.display="none";
+  gameState="world";
+}
+
+function buyChip(id,cost){
+  let c=CHIPS.find(ch=>ch.id===id);
+  if(!c||c.owned){notify("Already owned!");return}
+  if(tokens<cost){notify("Need "+cost+" tokens!");return}
+  tokens-=cost;c.owned=true;updateHUD();
+  notify("Bought "+c.name+"! Equip it via CHIPS.");
+  openShop();
+}
+
+function buyByte(id,cost){
+  if(boughtBytes.includes(id)){notify("Already owned!");return}
+  if(tokens<cost){notify("Need "+cost+" tokens!");return}
+  tokens-=cost;bytesOwned++;boughtBytes.push(id);updateHUD();
+  notify("Bought "+BYTE_SHOP.find(b=>b.id===id).name+" Byte!");
+  openShop();
+}
+
+// ═══════════════════════════════════════════════
+//  CHIP EQUIP
+// ═══════════════════════════════════════════════
+function openChips(){
+  if(gameState!=="world")return;
+  gameState="chips";
+  const list=document.getElementById("chipList");list.innerHTML="";
+  CHIPS.forEach(c=>{
+    let div=document.createElement("div");div.className="citem";
+    div.innerHTML=`<div>
+      <div style="color:${c.owned?"#44ff44":"#445544"}">${c.name}${c.owned?"":" (not owned)"}</div>
+      <div style="font-size:6px;color:#557755">${c.desc}</div></div>
+      ${c.owned?`<button class="btn" onclick="toggleChip('${c.id}')"
+        style="background:${c.equipped?"#003311":"#1a0d33"};border-color:${c.equipped?"#44ff44":"#7744cc"}">
+        ${c.equipped?"UNEQUIP":"EQUIP"}</button>`:""}`;
+    list.appendChild(div);
+  });
+  document.getElementById("chipUI").style.display="block";
+}
+
+function toggleChip(id){
+  let c=CHIPS.find(ch=>ch.id===id);
+  if(c&&c.owned){c.equipped=!c.equipped;notify(c.equipped?c.name+" equipped!":c.name+" unequipped.");openChips();}
+}
+
+function closeChips(){
+  document.getElementById("chipUI").style.display="none";
+  gameState="world";
+}
+
+// ═══════════════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════════════
+function updateHUD(){
+  document.getElementById("tkD").textContent=tokens;
+  document.getElementById("xpD").textContent=xp;
+  document.getElementById("xpND").textContent=xpNext;
+  document.getElementById("lvD").textContent=level;
+  document.getElementById("byD").textContent=bytesOwned;
+}
+
+let notifTimer;
+function notify(msg){
+  let el=document.getElementById("notif");
+  el.textContent=msg;el.style.display="block";
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.style.display="none",3000);
+}
+
+// ═══════════════════════════════════════════════
+//  SAVE / LOAD
+// ═══════════════════════════════════════════════
+function saveGame(){
+  let data={
+    tokens,xp,level,xpNext,unlocked,bytesOwned,boughtBytes,
+    chips:CHIPS.map(c=>({id:c.id,owned:c.owned,equipped:c.equipped})),
+    party1,party2,activeIdx:activeParty===party1?0:1,
+    px:player.x,py:player.y,
+    deadE:wEnemies.filter(e=>e.dead).map((_,i)=>i),
+    deadB:wBosses.filter(b=>b.dead).map(b=>b.name)
+  };
+  localStorage.setItem("fnafwSave",JSON.stringify(data));
+  notify("✓ Game saved!");
+}
+
+function loadGame(){
+  let raw=localStorage.getItem("fnafwSave");
+  if(!raw){notify("No save found.");return}
+  let d=JSON.parse(raw);
+  tokens=d.tokens||0;xp=d.xp||0;level=d.level||1;xpNext=d.xpNext||100;
+  unlocked=d.unlocked||[0,1,2,3];
+  bytesOwned=d.bytesOwned||0;boughtBytes=d.boughtBytes||[];
+  if(d.chips)d.chips.forEach(sc=>{let c=CHIPS.find(ch=>ch.id===sc.id);if(c){c.owned=sc.owned;c.equipped=sc.equipped}});
+  if(d.party1)party1=d.party1;if(d.party2)party2=d.party2;
+  activeParty=d.activeIdx===1?party2:party1;
+  if(d.px){player.x=d.px;player.y=d.py}
+  if(d.deadE)d.deadE.forEach(i=>{if(wEnemies[i])wEnemies[i].dead=true});
+  if(d.deadB)d.deadB.forEach(n=>{let b=wBosses.find(b=>b.name===n);if(b)b.dead=true});
+  updateHUD();notify("✓ Game loaded!");
+}
+
+// ═══════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════
+window.addEventListener("keydown",e=>{
+  keys[e.code]=true;
+  if(e.code==="KeyE"&&gameState==="world")openShop();
+  if(e.code==="Escape"){
+    if(gameState==="shop")closeShop();
+    else if(gameState==="chips")closeChips();
+  }
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();
+});
+window.addEventListener("keyup",e=>keys[e.code]=false);
+
+// ═══════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════
+function loop(){
+  ctx.clearRect(0,0,VIEW_W,VIEW_H);
+  if(gameState==="title"){requestAnimationFrame(loop);return}
+
+  updatePlayer();
+
+  if(gameState==="world"||gameState==="shop"||gameState==="chips"){
+    drawWorld();
+  }else if(gameState==="battle"){
+    drawBattle();
+  }
+  requestAnimationFrame(loop);
+}
+
+function startGame(){
+  document.getElementById("titleScreen").style.display="none";
+  gameState="world";
+  buildMap();
+  spawnWorldEnemies();
+  updateHUD();
+  loop();
+}
+
+// Kick off loop for title animation
+loop();
+</script>
+</body>
+</html>
